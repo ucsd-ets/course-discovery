@@ -4,6 +4,7 @@ from decimal import Decimal
 
 import ddt
 import mock
+import requests
 import responses
 from django.test import TestCase
 from pytz import UTC
@@ -355,6 +356,65 @@ class CoursesApiDataLoaderTests(ApiClientTestMixin, DataLoaderTestMixin, TestCas
             self.assertEqual(actual.src, expected_video_src)
         else:
             self.assertIsNone(actual)
+
+    @mock.patch(
+        'course_discovery.apps.course_metadata.models.Course',
+        auto_spec=True
+    )
+    @mock.patch(
+        'course_discovery.apps.course_metadata.data_loaders.api.BytesIO',
+        auto_spec=True
+    )
+    @mock.patch('course_discovery.apps.course_metadata.data_loaders.api.requests.get')
+    def test_update_course_image(self, mocked_request, mocked_bytes_io, mocked_course):
+        """
+        Test that course image is updated if old course image url and
+        new course image url are different and new course image url is not
+        None or doesn't have example domain.
+        """
+        mocked_request.return_value.status_code = requests.codes.ok
+        course_api_data_loader = CoursesApiDataLoader('dummy partner', 'http://localhost:18381')
+        course_image_urls = {
+            'old': '',
+            'new': 'http://sample.com/image',
+        }
+        course_api_data_loader._update_course_image(course_image_urls, mocked_course)
+        self.assertTrue(mocked_request.called)
+        self.assertTrue(mocked_bytes_io.called)
+        self.assertTrue(mocked_course.image.save.called)
+
+    @ddt.unpack
+    @ddt.data(
+        ('not available', 'http://example.com/image.jpg'),
+        ('http://example.com/image.jpg', None),
+    )
+    @mock.patch(
+        'course_discovery.apps.course_metadata.models.Course',
+        auto_spec=True
+    )
+    @mock.patch(
+        'course_discovery.apps.course_metadata.data_loaders.api.BytesIO',
+        auto_spec=True
+    )
+    @mock.patch('course_discovery.apps.course_metadata.data_loaders.api.requests.get')
+    def test_course_image_is_not_updated_with_example_new_image_url_or_not_available(self, old_image_url,
+                                                                                     new_image_url, mocked_request,
+                                                                                     mocked_bytes_io, mocked_course):
+        """
+        Test that course image is not updated if old course image url and
+        new course image url are similar or new course image url is None
+        or having example domain.
+        """
+        mocked_request.return_value.status_code = requests.codes.ok
+        course_api_data_loader = CoursesApiDataLoader('dummy partner', 'http://localhost:18381')
+        course_image_urls = {
+            'old': old_image_url,
+            'new': new_image_url,
+        }
+        course_api_data_loader._update_course_image(course_image_urls, mocked_course)
+        self.assertFalse(mocked_request.called)
+        self.assertFalse(mocked_bytes_io.called)
+        self.assertFalse(mocked_course.image.save.called)
 
 
 @ddt.ddt
