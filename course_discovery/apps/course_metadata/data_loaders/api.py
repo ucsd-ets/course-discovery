@@ -130,6 +130,18 @@ class CoursesApiDataLoader(AbstractDataLoader):
                 body = self.clean_strings(body)
                 course_run = self.get_course_run(body)
                 if course_run:
+                    course_image_urls = {
+                        'old': course_run.card_image_url,
+                        'new': body['media'].get('image', {}).get('raw')
+                    }
+                    course_run_key = CourseKey.from_string(body['id'])
+                    course_key = self.get_course_key_from_course_run_key(course_run_key)
+                    try:
+                        course = Course.objects.get(key__iexact=course_key)
+                        self._update_course_image(course_image_urls, course)
+                    except Course.DoesNotExist:
+                        logger.error('Course with key {} does not exist.'.format(course_key))
+
                     self.update_course_run(course_run, body)
                     course = getattr(course_run, 'canonical_for_course', False)
                     if course and not self.partner.has_marketing_site:
@@ -141,6 +153,12 @@ class CoursesApiDataLoader(AbstractDataLoader):
                 else:
                     course, created = self.get_or_create_course(body)
                     course_run = self.create_course_run(course, body)
+                    course_image_urls = {
+                        'old': 'Not available',
+                        'new': body['media'].get('image', {}).get('raw')
+                    }
+                    self._update_course_image(course_image_urls, course)
+
                     if created:
                         course.canonical_course_run = course_run
                         course.save()
@@ -274,6 +292,17 @@ class CoursesApiDataLoader(AbstractDataLoader):
             video, __ = Video.objects.get_or_create(src=video_url)
 
         return video
+
+    def _update_course_image(self, course_image_urls, course):
+        if course_image_urls['new'] == 'http://example.com/image.jpg' or course_image_urls['new'] is None:
+            return
+        if (course_image_urls['old'] != course_image_urls['new']) or not course.image_url:
+            resp = requests.get(course_image_urls['new'])
+            if resp.status_code == requests.codes.ok:
+                fp = BytesIO()
+                fp.write(resp.content)
+                file_name = course_image_urls['new'].split("/")[-1]
+                course.image.save(file_name, File(fp))
 
 
 class EcommerceApiDataLoader(AbstractDataLoader):
