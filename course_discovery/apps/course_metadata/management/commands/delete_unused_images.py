@@ -65,7 +65,7 @@ class Command(BaseCommand):
             len(obsolete_images))
         )
 
-        if len(len(obsolete_images)):
+        if len(obsolete_images):
             obsolete_images_keys = [key for key in uploaded_images_keys if key.key in obsolete_images]
             try:
                 bucket.delete_keys(obsolete_images_keys)
