@@ -38,7 +38,7 @@ class Command(BaseCommand):
         try:
             bucket = self._get_bucket()
             logger.info('Successfully made connection to s3 bucket')
-        except AWSConnectionError, BotoClientError:
+        except (AWSConnectionError, BotoClientError):
             logger.error('AWS connection error occurred while trying to connect to AWS service')
             sys.exit(1)
         except Exception as ex:
@@ -65,7 +65,7 @@ class Command(BaseCommand):
             len(obsolete_images))
         )
 
-        if len(len(obsolete_images)):
+        if len(obsolete_images):
             obsolete_images_keys = [key for key in uploaded_images_keys if key.key in obsolete_images]
             try:
                 bucket.delete_keys(obsolete_images_keys)
