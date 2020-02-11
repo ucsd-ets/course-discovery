@@ -38,7 +38,7 @@ class Command(BaseCommand):
         try:
             bucket = self._get_bucket()
             logger.info('Successfully made connection to s3 bucket')
-        except AWSConnectionError, BotoClientError:
+        except (AWSConnectionError, BotoClientError):
             logger.error('AWS connection error occurred while trying to connect to AWS service')
             sys.exit(1)
         except Exception as ex:
