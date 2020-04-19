@@ -1,0 +1,88 @@
+name: Python and Quality Tests
+
+on:
+  pull_request:
+    branches: [ 'develop', 'master', 'release-candidate' ]
+
+env:
+  OPENEDX_RELEASE: 'ironwood.master'
+
+jobs:
+  quality-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup docker containers
+        run: |
+          docker-compose -f .github/docker-compose-github.yml up -d
+      - name: Install requirements
+        run: |
+          docker exec -t discovery bash -c '
+            sed -i "s/course_discovery.settings.devstack/course_discovery.settings.test/" /edx/app/discovery/discovery_env'
+          docker exec -t discovery bash -c '
+            source /edx/app/discovery/discovery_env &&
+            cd /edx/app/discovery/discovery/ &&
+            make requirements'
+
+      - name: Generate docs
+        run: |
+          docker exec -t discovery bash -c '
+            source /edx/app/discovery/discovery_env &&
+            cd /edx/app/discovery/discovery/ &&
+            make docs'
+      - name: Clean static assets
+        if: always()
+        run: |
+          docker exec -t discovery bash -c '
+            source /edx/app/discovery/discovery_env &&
+            cd /edx/app/discovery/discovery/ &&
+            make clean_static'
+      - name: Genrate static assets
+        if: always()
+        run: |
+          docker exec -t discovery bash -c '
+            source /edx/app/discovery/discovery_env &&
+            cd /edx/app/discovery/discovery/ &&
+            make static'
+      - name: Test quality
+        if: always()
+        run: |
+          docker exec -t discovery bash -c '
+            source /edx/app/discovery/discovery_env &&
+            cd /edx/app/discovery/discovery/ &&
+            make quality'
+
+  python-tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup docker containers
+      run: |
+        docker-compose -f .github/docker-compose-github.yml up -d
+    - name: Install requirements
+      run: |
+        docker exec -t discovery bash -c 'sed -i "s|http://archive|http://us.archive|g" /etc/apt/sources.list'
+        docker exec -t discovery bash -c 'apt update && apt install -y --no-install-recommends firefox gettext'
+        docker exec -t discovery bash -c 'sed -i "s/course_discovery.settings.devstack/course_discovery.settings.test/" /edx/app/discovery/discovery_env'
+        docker exec -e TOXENV=${{ matrix.TOXENV }} -t discovery bash -c '
+          source /edx/app/discovery/discovery_env &&
+          cd /edx/app/discovery/discovery/ &&
+          make requirements'
+    - name: Clean static assets
+      run: |
+        docker exec -t discovery bash -c '
+          source /edx/app/discovery/discovery_env &&
+          cd /edx/app/discovery/discovery/ &&
+          make clean_static'
+    - name: Generate static assets
+      run: |
+        docker exec -t discovery bash -c '
+          source /edx/app/discovery/discovery_env &&
+          cd /edx/app/discovery/discovery/ &&
+          make static'
+    - name: Run the python tests
+      run: |
+        docker exec -e TOXENV=${{ matrix.TOXENV }} -t discovery bash -c '
+          source /edx/app/discovery/discovery_env &&
+          cd /edx/app/discovery/discovery/ &&
+          make test'
