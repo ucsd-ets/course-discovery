@@ -55,6 +55,14 @@ class CourseRunViewSet(viewsets.GenericViewSet):
             if content:
                 logger.error(content)
             raise
+        except ValueError as ex:
+            message = "It looks like your course data is not completed yet. Please complete it before publishing the " \
+                      "course. If the issue persists please contact your Administrator."
+            logger.exception('Failed to publish course run [%s]!', pk)
+            content = getattr(ex, 'content', None)
+            if content:
+                logger.error(content)
+            return Response(message, status=502)
 
         status_code = status.HTTP_200_OK
         for _status in publication_status.values():
