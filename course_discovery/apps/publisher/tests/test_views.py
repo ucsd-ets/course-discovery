@@ -2562,7 +2562,9 @@ class CourseDetailViewTests(TestCase):
         self.course_team_role.save()
 
         # Verify that user cannot see edit button if he has no role for course.
-        self.assert_can_edit_permission(can_edit=False)
+        # [UCSD_CUSTOM] Updated the code to allow admin publisher to access course
+        # even if they don't have any role for the course.
+        self.assert_can_edit_permission(can_edit=True)
 
     def test_detail_page_with_role_widgets(self):
         """

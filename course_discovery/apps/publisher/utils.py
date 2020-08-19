@@ -116,6 +116,14 @@ def has_role_for_course(course, user):
     return course.course_user_roles.filter(user=user).exists()
 
 
+def has_course_access(course, user):
+    return (
+        has_role_for_course(course, user) or
+        is_internal_user(user) or
+        is_publisher_admin(user)
+    )
+
+
 def parse_datetime_field(date):
     """
     Parse datetime field to make same format YYYY-MM-DD 00:00:00.
