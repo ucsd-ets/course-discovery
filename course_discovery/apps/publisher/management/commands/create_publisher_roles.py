@@ -181,25 +181,31 @@ class Command(BaseCommand):
     def create_organization_group(self, organizations):
         groups = {}
         for org in organizations:
-            group, created = Group.objects.get_or_create(name='{} Admins'.format(org.key))
-            logger.info('{} group {} for organization {}'.format(
-                log_message_prefix(created), group, org
-            ))
 
-            extension, created = OrganizationExtension.objects.get_or_create(
-                group=group,
-                organization=org
-            )
+            try:
+                extension = OrganizationExtension.objects.get(organization=org)
+                group = extension.group
+
+                logger.info('Found existing organization extension {} for organization {}'.format(
+                    extension, org
+                ))
+
+            except OrganizationExtension.DoesNotExist:
+                group, created = Group.objects.get_or_create(name='{} Admins'.format(org.key))
+                logger.info('{} group {} for organization {}'.format(
+                    log_message_prefix(created), group, org
+                ))
+                extension = OrganizationExtension.objects.create(organization=org, group=group)
+
+                logger.info('{} organization extension {} for organization {}'.format(
+                    log_message_prefix(created), extension, org
+                ))
 
             # Assign appropriate permission to the group so that any user
             # can change the users for course roles
             assign_permissions(extension)
-
-            logger.info('{} organization extension {} for organization {}'.format(
-                log_message_prefix(created), extension, org
-            ))
-
             groups[org.key] = group
+
         return groups
 
     def link_groups_with_users(self, users, groups):
@@ -220,20 +226,16 @@ class Command(BaseCommand):
         for org, courses in six.iteritems(org_courses):
             for course in courses:
                 pub_course = publisher_courses.get(course_metadata_pk=course.pk)
-                course_number = course.key.split('+')[1]
-                pub_course.number = course_number
-                pub_course.save()
-                logger.info('Updated course number {} for course {}'.format(
-                    course_number, course
-                ))
+                if not pub_course.number:
+                    course_number = course.key.split('+')[1]
+                    pub_course.number = course_number
+                    pub_course.save()
+                    logger.info('Updated course number {} for course {}'.format(
+                        course_number, course
+                    ))
                 self.create_roles_for_course(pub_course, users)
 
     def create_roles_for_course(self, course, users):
-        # TODO add every user to "Publisher Admins" groups to display courses and edit courses team users
-        # TODO: make a separate command for managing user roles
-        # Publisher admin users can view all courses but can edit only the courses
-        # authored by their organizations
-        # Internal users can change the users for different roles
         for role in PUBLISHER_USER_ROLES:
             try:
                 course_user_role = CourseUserRole.objects.get(
