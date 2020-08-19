@@ -37,7 +37,8 @@ from course_discovery.apps.publisher.models import (
     PublisherUser, Seat, UserAttributes
 )
 from course_discovery.apps.publisher.utils import (
-    get_internal_users, has_course_access, is_internal_user, is_project_coordinator_user, is_publisher_admin,
+    get_internal_users, has_course_access, has_role_for_course,
+    is_internal_user, is_project_coordinator_user, is_publisher_admin,
     make_bread_crumbs
 )
 from course_discovery.apps.publisher.wrappers import CourseRunWrapper
@@ -182,7 +183,7 @@ class CourseRunDetailView(mixins.LoginRequiredMixin, mixins.PublisherPermissionM
 
         context['can_edit'] = mixins.check_course_organization_permission(
             user, course_run.course, OrganizationExtension.EDIT_COURSE_RUN
-        ) and has_course_access(course_run.course, user)
+        ) and has_role_for_course(course_run.course, user)
 
         context['role_widgets'] = get_course_role_widgets_data(
             user, course_run.course, course_run.course_run_state, 'publisher:api:change_course_run_state'
