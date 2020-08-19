@@ -181,7 +181,7 @@ class Command(BaseCommand):
     def create_organization_group(self, organizations):
         groups = {}
         for org in organizations:
-            group, created = Group.objects.get_or_create(name='{}-admins'.format(org.key))
+            group, created = Group.objects.get_or_create(name='{} Admins'.format(org.key))
             logger.info('{} group {} for organization {}'.format(
                 log_message_prefix(created), group, org
             ))
