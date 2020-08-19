@@ -9,7 +9,7 @@ from rest_framework import serializers
 from course_discovery.apps.core.utils import serialize_datetime
 from course_discovery.apps.publisher.mixins import check_course_organization_permission
 from course_discovery.apps.publisher.models import OrganizationExtension
-from course_discovery.apps.publisher.utils import has_role_for_course
+from course_discovery.apps.publisher.utils import has_course_access
 
 
 class CourseSerializer(serializers.Serializer):  # pylint: disable=abstract-method
@@ -79,6 +79,6 @@ class CourseSerializer(serializers.Serializer):  # pylint: disable=abstract-meth
         try:
             return check_course_organization_permission(
                 user, course, OrganizationExtension.EDIT_COURSE
-            ) and has_role_for_course(course, user)
+            ) and has_course_access(course, user)
         except ObjectDoesNotExist:
             return False
