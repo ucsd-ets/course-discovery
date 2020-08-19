@@ -19,7 +19,7 @@ class Command(BaseCommand):
     Example usage:
         ```
         python manage.py add_users_to_group -g "Publisher Admins" "Internal Users"\
-            "ucsd-admins" "edx-admins"\
+            "ucsd Admins" "edx Admins"\
             -u edx staff -s -f filename.txt
         ```
     """
