@@ -260,11 +260,11 @@ class Course(TimeStampedModel, ChangedByMixin):
 
         return self.title
 
-    @cached_property
+    @property
     def discovery_counterpart(self):
         return DiscoveryCourse.objects.get(partner=self.partner, key=self.key)
 
-    @cached_property
+    @property
     def key(self):
         return '{org}+{number}'.format(org=self.organizations.first().key, number=self.number)
 
@@ -473,7 +473,7 @@ class CourseRun(TimeStampedModel, ChangedByMixin):
     def get_absolute_url(self):
         return reverse('publisher:publisher_course_run_detail', kwargs={'pk': self.id})
 
-    @cached_property
+    @property
     def discovery_counterpart_latest_by_start_date(self):
         try:
             discovery_course = self.course.discovery_counterpart
@@ -486,7 +486,7 @@ class CourseRun(TimeStampedModel, ChangedByMixin):
             )
             return None
 
-    @cached_property
+    @property
     def discovery_counterpart(self):
         try:
             discovery_course = self.course.discovery_counterpart
